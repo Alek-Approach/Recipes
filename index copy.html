@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cocktail Recipes</title>
+<style>
+  :root{
+    --bg:#0d0b0a;
+    --panel:#16110f;
+    --line:#2a221d;
+    --gold:#c9a35b;
+    --gold-soft:#e6cb93;
+    --text:#f2ece2;
+    --muted:#9c8f7e;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    line-height:1.5;
+    padding-bottom:60px;
+  }
+  header{
+    text-align:center;
+    padding:46px 20px 30px;
+    border-bottom:1px solid var(--line);
+    background:radial-gradient(120% 90% at 50% 0%,#1c1612 0%,var(--bg) 70%);
+  }
+  .eyebrow{
+    letter-spacing:.42em;
+    text-transform:uppercase;
+    font-size:11px;
+    color:var(--gold);
+    font-family:"Helvetica Neue",Arial,sans-serif;
+    margin-bottom:14px;
+  }
+  h1{
+    font-size:clamp(30px,7vw,52px);
+    font-weight:600;
+    letter-spacing:.01em;
+  }
+  h1 .amp{color:var(--gold);font-style:italic}
+  .sub{color:var(--muted);margin-top:12px;font-size:14px;font-style:italic}
+
+  .controls{
+    max-width:1180px;margin:26px auto 0;padding:0 20px;
+    display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center;
+  }
+  #search{
+    flex:1 1 260px;max-width:420px;
+    background:var(--panel);border:1px solid var(--line);
+    color:var(--text);padding:12px 16px;border-radius:30px;
+    font-family:inherit;font-size:15px;outline:none;
+  }
+  #search:focus{border-color:var(--gold)}
+  #search::placeholder{color:var(--muted)}
+  .filters{display:flex;flex-wrap:wrap;gap:7px;justify-content:center}
+  .chip{
+    background:transparent;border:1px solid var(--line);color:var(--muted);
+    padding:8px 14px;border-radius:30px;cursor:pointer;font-family:"Helvetica Neue",Arial,sans-serif;
+    font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;transition:.15s;
+  }
+  .chip:hover{color:var(--text);border-color:var(--gold)}
+  .chip.active{background:var(--gold);color:#1a130b;border-color:var(--gold);font-weight:600}
+
+  .section-title{
+    max-width:1180px;margin:42px auto 4px;padding:0 24px;
+    font-size:13px;letter-spacing:.32em;text-transform:uppercase;color:var(--gold);
+    font-family:"Helvetica Neue",Arial,sans-serif;
+    display:flex;align-items:center;gap:16px;
+  }
+  .section-title::after{content:"";flex:1;height:1px;background:var(--line)}
+
+  .grid{
+    max-width:1180px;margin:18px auto 0;padding:0 16px;
+    display:grid;gap:18px;
+    grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+  }
+  .card{
+    background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    overflow:hidden;cursor:pointer;transition:transform .18s,border-color .18s,box-shadow .18s;
+    display:flex;flex-direction:column;
+  }
+  .card:hover{transform:translateY(-4px);border-color:var(--gold);box-shadow:0 12px 30px rgba(0,0,0,.5)}
+  .thumb{aspect-ratio:1/1;overflow:hidden;background:#000}
+  .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+  .card-body{padding:14px 15px 16px}
+  .card-cat{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);
+    font-family:"Helvetica Neue",Arial,sans-serif;margin-bottom:6px}
+  .card-name{font-size:19px;font-weight:600;line-height:1.2}
+
+  .empty{max-width:1180px;margin:50px auto;text-align:center;color:var(--muted);padding:0 20px}
+
+  /* Modal */
+  .overlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.78);backdrop-filter:blur(3px);
+    display:none;align-items:flex-start;justify-content:center;z-index:50;
+    padding:24px 16px;overflow-y:auto;
+  }
+  .overlay.open{display:flex}
+  .modal{
+    background:var(--panel);border:1px solid var(--line);border-radius:18px;
+    max-width:560px;width:100%;margin:auto;overflow:hidden;
+    animation:rise .25s ease;
+  }
+  @keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+  .modal-hero{position:relative;aspect-ratio:16/10;background:#000;overflow:hidden}
+  .modal-hero img{width:100%;height:100%;object-fit:cover}
+  .modal-hero .scrim{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.1),rgba(22,17,15,.95))}
+  .modal-hero .titles{position:absolute;left:24px;right:24px;bottom:16px}
+  .modal-cat{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold-soft);
+    font-family:"Helvetica Neue",Arial,sans-serif;margin-bottom:6px}
+  .modal-name{font-size:28px;font-weight:600;line-height:1.15}
+  .close{
+    position:absolute;top:14px;right:14px;z-index:3;
+    width:38px;height:38px;border-radius:50%;border:none;cursor:pointer;
+    background:rgba(0,0,0,.55);color:#fff;font-size:20px;line-height:38px;
+  }
+  .close:hover{background:var(--gold);color:#1a130b}
+  .modal-body{padding:22px 26px 28px}
+  .block{margin-bottom:18px}
+  .block:last-child{margin-bottom:0}
+  .block h3{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);
+    font-family:"Helvetica Neue",Arial,sans-serif;margin-bottom:9px}
+  .ing{list-style:none;display:flex;flex-direction:column;gap:7px}
+  .ing li{display:flex;gap:12px;align-items:baseline;border-bottom:1px dotted var(--line);padding-bottom:7px}
+  .ing .amt{color:var(--gold-soft);font-variant-numeric:tabular-nums;white-space:nowrap;min-width:64px;font-weight:600}
+  .ing .nm{color:var(--text)}
+  .steps{padding-left:20px;color:var(--text)}
+  .steps li{margin-bottom:6px}
+  .meta{display:flex;flex-wrap:wrap;gap:10px}
+  .meta div{flex:1 1 150px;background:#0f0c0a;border:1px solid var(--line);border-radius:10px;padding:11px 13px}
+  .meta .k{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);
+    font-family:"Helvetica Neue",Arial,sans-serif;margin-bottom:4px}
+  .meta .v{font-size:15px}
+  footer{text-align:center;color:var(--muted);font-size:12px;margin-top:50px;padding:0 20px;font-style:italic}
+  @media(max-width:480px){
+    .grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+    .card-name{font-size:16px}
+    .modal-name{font-size:23px}
+    .modal-body{padding:20px 18px 24px}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="eyebrow">House Specs</div>
+  <h1>Cocktail <span class="amp">&amp;</span> Spirits</h1>
+  <p class="sub">Tap any drink to see its full build, glassware, and garnish.</p>
+</header>
+
+<div class="controls">
+  <input id="search" type="search" placeholder="Search a drink or ingredient…" autocomplete="off">
+  <div class="filters" id="filters"></div>
+</div>
+
+<main id="content"></main>
+<div class="empty" id="empty" style="display:none">No drinks match that search.</div>
+
+<footer>Built from the house recipe book · tap a card for the full spec</footer>
+
+<div class="overlay" id="overlay">
+  <div class="modal" id="modal"></div>
+</div>
+
+<script>
+const RECIPES = [
+  // ===== NON-ALCOHOLIC =====
+  {slug:"apres-spritz",name:"Après Spritz",cat:"Non-Alcoholic",
+   build:"In a Boston shaker with ice",
+   ing:[["2 oz","Lyre's Italian Spritz"],["2 oz","Lyre's Classico Sparkling"]],
+   glass:"Stemless wine",garnish:"Grapefruit zest"},
+  {slug:"prickly-pear-marg",name:"Prickly Pear Margarita",cat:"Non-Alcoholic",
+   build:"In a Boston shaker with ice",
+   ing:[["2.5 oz","Lyre's Agave Blanco Spirit"],["1 oz","REÀL Prickly Pear Purée"],[".5 oz","Lemon juice"],[".5 oz","Lime juice"]],
+   glass:"Stemless wine",garnish:"Maldon sea salt rim, lime wheel slit on edge and placed on rim"},
+  {slug:"no-side-sipping",name:"No Side Sipping",cat:"Non-Alcoholic",
+   build:"In a shaker",
+   ing:[["10","Mint leaves"],["5","Cucumbers"],[".25 oz","Daily's Simple Syrup"],["1 oz","Lime juice"],["2 oz","Lyre's Dry London Gin"],["2 oz","With CO Cocktails – Ginger Mule"]],
+   steps:["Muddle mint, cucumber, syrup and lime, then add ice","Add gin and ginger mule, shake"],
+   glass:"Stemless martini",garnish:"Black tipped bamboo pick with candied ginger & mint sprig"},
+  {slug:"you-mango-me-hot",name:"You Mango Me Hot!",cat:"Non-Alcoholic",
+   build:"In a shaker with ice",
+   ing:[["2 oz","Lyre's Agave Blanco Spirit"],["1 oz","Monin Mango Purée"],["1 oz","Lime juice"],["2 dashes","Scrappy's Firewater Tincture"]],
+   steps:["Shake and strain over fresh ice"],
+   glass:"Stemless wine",garnish:"Tajín / Maldon sea salt rim, lime wheel slit on edge placed on rim & chili threads"},
+
+  // ===== TEQUILA =====
+  {slug:"mastros-margarita",name:"Mastro's Margarita",cat:"Tequila",
+   build:"In a shaker with ice",
+   ing:[["2.5 oz","Don Julio Reposado Tequila"],[".5 oz","Grand Marnier"],["1 oz","Daily's Triple Sec"],["1 oz","Daily's Sweet and Sour"],["½","Lime, squeeze and drop in shaker"]],
+   glass:"Martini glass or bucket glass with ice",garnish:"Maldon sea salt rim, lime wedge"},
+  {slug:"volcante",name:"Volcante",cat:"Tequila",
+   build:"In a Boston shaker",
+   ing:[["4","Cucumbers"],["3","Jalapeño slices, deseeded"],["2 oz","Volcán Blanco Tequila"],[".5 oz","Tres Agaves Agave Nectar"],[".5 oz","Lime juice"]],
+   steps:["Muddle cucumber and jalapeño, add ice","Add remaining, shake and strain over fresh ice"],
+   glass:"Bucket",garnish:"Tajín & Maldon sea salt rim (3 parts Tajín, 1 part Maldon), 1 floating cucumber"},
+  {slug:"call-me-an-ube",name:"Call me an Ube (ooh-beh)",cat:"Tequila",
+   build:"In a Boston shaker with ice",
+   ing:[["2 oz","Casamigos Reposado Tequila"],["1 oz","Dole Pineapple juice"],[".5 oz","Lemon juice"],[".5 oz","Lime juice"],[".25 oz","Monin Banana Purée"],[".25 oz","Monin Ube Syrup"]],
+   steps:["Shake and strain"],
+   glass:"Pilsner",garnish:"Dried pineapple with rind"},
+  {slug:"skinny-diablo",name:"Skinny Diablo",cat:"Tequila",
+   build:"In a Boston shaker",
+   ing:[["1","Jalapeño slice deseeded"],["1","Red bell pepper slice"],[".5 oz","Lime juice"],["2.5 oz","Don Julio Blanco Tequila"],[".75 oz","Tres Agaves Agave Nectar"],["Splash","Daily's Triple Sec"]],
+   steps:["Muddle pepper and jalapeño with lime, add ice","Add remaining, shake and pour","Add 2 additional slices of jalapeño (deseeded) and red bell pepper"],
+   glass:"Pilsner",garnish:"None"},
+
+  // ===== MEZCAL =====
+  {slug:"watermelon-fiesta",name:"Watermelon Fiesta",cat:"Mezcal",
+   build:"In a Boston shaker with ice",
+   ing:[["2 oz","Patrón Reposado Tequila"],[".75 oz","Monin Watermelon Syrup"],[".5 oz","Lemon juice"],[".5 oz","Lime juice"],[".25 oz","Tres Agave Agave Nectar"],["2 dashes","Scrappy's Fire Water Tincture"]],
+   glass:"Bucket glass",garnish:"Tajín & Maldon sea salt rim, 1 jalapeño slice deseeded"},
+  {slug:"smoke-mirrors",name:"Smoke & Mirrors",cat:"Mezcal",
+   build:"In a Boston shaker",
+   ing:[["2 slices","Red bell pepper"],["2 oz","Ilegal Reposado Mezcal"],[".5 oz","Ancho Reyes Verde"],[".75 oz","Tres Agaves Agave Nectar"],["1 oz","Lime juice"]],
+   steps:["Muddle red bell pepper, add ice","Add remaining, shake and strain over fresh ice"],
+   glass:"Bucket",garnish:"Light dusting of smoked paprika, 6 to 8 chili threads"},
+
+  // ===== RUM =====
+  {slug:"mastros-mojito",name:"Mastro's Mojito",cat:"Rum",
+   build:"In a Boston shaker",
+   ing:[["12","Mint leaves, tear"],[".5 oz","Lime juice"],["2.5 oz","Bacardí Limón Rum"],[".5 oz","Daily's Simple Syrup"]],
+   steps:["Muddle mint and lime, add ice","Add rum and syrup, shake and pour","Top with Fever-Tree Club Soda"],
+   glass:"Tall",garnish:"Lime wedge"},
+
+  // ===== WHISKEY | BOURBON =====
+  {slug:"tiki-time",name:"Tiki Time",cat:"Whiskey | Bourbon",
+   build:"In a shaker with ice",
+   ing:[["1.5 oz","Don Q 7yr Reserva Rum"],["1.5 oz","Bacardí Limón Rum"],["1 oz","Aperol"],[".5 oz","Monin Banana Purée"],[".25 oz","Monin Mango Purée"],[".5 oz","Dole Pineapple juice"],["½","Lemon, squeeze and drop into shaker"]],
+   glass:"Martini",garnish:"Luxardo cherry & dried orange wheel"},
+  {slug:"mastros-manhattan",name:"Mastro's Manhattan",cat:"Whiskey | Bourbon",
+   build:"In a shaker with ice",
+   ing:[["1.5 oz","Woodford Reserve Bourbon (Buffalo Trace in MACI only)"],["1.5 oz","Amaro Montenegro"],["1.5 oz","Vya Sweet"],["3 dashes","Angostura Bitters"]],
+   steps:["Option: stirred or shaken (ask guest for preference)"],
+   glass:"Martini",garnish:"3 Luxardo cherries on a pick"},
+  {slug:"monkey-business",name:"Monkey Business",cat:"Whiskey | Bourbon",
+   build:"In a Boston shaker with ice",
+   ing:[["2.5 oz","Nikka Coffey Grain Whisky"],[".75 oz","Monin Banana Purée"],[".75 oz","Dole Pineapple juice"],[".5 oz","Lemon juice"]],
+   steps:["Shake and strain over block ice with M logo stamp"],
+   glass:"Crystal",garnish:"1 Luxardo cherry"},
+  {slug:"fire-mango",name:"Fire & Mango",cat:"Whiskey | Bourbon",
+   build:"In a Boston shaker over ice",
+   ing:[["2 oz","Jameson Black Barrel Whiskey"],[".5 oz","Aperol"],[".5 oz","Monin Mango Purée"],[".5 oz","Lemon juice"],["2 dashes","Scrappy Firewater tincture"]],
+   steps:["Shake and strain over block ice with M logo stamp"],
+   glass:"Crystal",garnish:"Tajín rim"},
+  {slug:"sazerac",name:"Sazerac",cat:"Whiskey | Bourbon",
+   build:"In a Boston shaker with ice",
+   ing:[["2.5 oz","Sazerac 6yr Rye Whiskey (Benchmark – MAFL & MAMI only)"],[".5 oz","Daily's Simple Syrup"],["6 dashes","Peychaud's Bitters"]],
+   steps:["St. George Absinthe rinse in rocks glass and dump","Stir and strain"],
+   glass:"Rocks",garnish:"Lemon zest"},
+  {slug:"grounds-divorce",name:"Grounds for Divorce",cat:"Whiskey | Bourbon",
+   build:"In a Boston shaker with ice",
+   ing:[["2 oz","Gentleman Jack Whiskey"],["1 oz","Liquid Alchemist Apple Spice Syrup"],[".5 oz","Lemon juice"],["3 dashes","Regan's Orange bitters"]],
+   steps:["Shake and strain over block ice with M logo stamp","Splash of Fever-Tree Ginger Beer"],
+   glass:"Crystal glass",garnish:"Gold dusted apple chip (gold side up)"},
+
+  // ===== SCOTCH =====
+  {slug:"penicillin",name:"Penicillin",cat:"Scotch",
+   build:"In a Boston shaker with ice",
+   ing:[["2 oz","Glenlivet 12 yr. Scotch"],[".5 oz","Liber & Co. Fiery Ginger Syrup"],[".25 oz","Honey water (equal parts honey & hot water)"],[".5 oz","Lemon juice"]],
+   steps:["Shake and strain over block ice with M logo stamp"],
+   glass:"Crystal",garnish:"Candied ginger"},
+
+  // ===== COGNAC =====
+  {slug:"hennessy-sidecar",name:"Hennessy Sidecar",cat:"Cognac",
+   build:"In a shaker with ice",
+   ing:[["2.5 oz","Hennessy VS Cognac (VSOP @ MAMI, MAHO, MAWD, MASC, MASF)"],["1.5 oz","Cointreau"],["1 oz","Daily's Sweet and Sour"],["1","Lime wedge, squeeze and drop into shaker"]],
+   steps:["Shake vigorously & pour table side"],
+   glass:"Martini",garnish:"Sugar rim, lime wedge"},
+
+  // ===== SIGNATURE MARTINIS =====
+  {slug:"lemon-drop",name:"Mastro's Lemon Drop",cat:"Signature Martinis",
+   build:"In a shaker with ice",
+   ing:[["3 oz","Lemon Infused Vodka"],["1 oz","Daily's Triple Sec"],["Splash","Daily's Sweet and Sour"],["Splash","Sprite"],["1","White sugar packet"],["½","Lemon, squeeze and drop in shaker"]],
+   steps:["Shake and strain over dry ice"],
+   glass:"Martini",garnish:"Lemon sugar rim, lemon wedge, dry ice"},
+  {slug:"cosmopolitan",name:"Mastro's Cosmopolitan",cat:"Signature Martinis",
+   build:"In a shaker with ice",
+   ing:[["3 oz","Orange Infused Vodka"],["1 oz","Daily's Triple Sec"],["Heavy splash","Cranberry juice"]],
+   steps:["Shake and strain over dry ice"],
+   glass:"Martini",garnish:"Orange slice, dry ice"},
+  {slug:"appletini",name:"Mastro's Appletini",cat:"Signature Martinis",
+   build:"In a shaker with ice",
+   ing:[["2 oz","Vodka (same vodka used for infusion, in unmarked bottle)"],["2 oz","Dekuyper Sour Apple Pucker"],["Splash","Daily's Sweet and Sour"],["Splash","Sprite"]],
+   steps:["Shake and strain over dry ice"],
+   glass:"Martini",garnish:"1 Luxardo cherry, dry ice"},
+  {slug:"salted-caramel",name:"Salted Caramel Martini",cat:"Signature Martinis",
+   build:"In a shaker with ice",
+   ing:[["1 oz","Belvedere Organic Vodka"],["3 oz","Dorda Sea Salt Caramel Liqueur"],["1 oz","Tuaca"]],
+   steps:["Shake vigorously & pour table side"],
+   glass:"Martini",garnish:"Maldon sea salt rim"},
+
+  // ===== DESSERT =====
+  {slug:"dusse-bananas",name:"Did D'USSÉ Bananas",cat:"Dessert",
+   build:"In a shaker with ice",
+   ing:[["1.5 oz","D'USSÉ VSOP"],["1.5 oz","Screwball Peanut Butter Whiskey"],["1 oz","Monin Banana Purée"],[".5 oz","Monin Sea Salt Caramel Toffee Sauce"],["Dollop","Reddi Wip whipped cream"]],
+   steps:["Shake vigorously and poured by bartender"],
+   glass:"Martini",garnish:"Light drizzle of Monin Sea Salt Caramel Toffee Sauce, dollop of Reddi Wip on side of glass, sprinkled with Wild Thai Bananas"},
+  {slug:"espresso-martini",name:"Espresso Martini",cat:"Dessert",
+   build:"In a shaker with ice",
+   ing:[["2 oz","Stoli Vanilla Vodka"],["1 oz","Kahlúa"],["1 oz","Tia Maria"],["1 shot","Fresh espresso (single)"]],
+   steps:["Shake vigorously & pour table side"],
+   glass:"Martini",garnish:"3 espresso beans"},
+  {slug:"key-lime-pie",name:"Key Lime Pie Martini",cat:"Dessert",
+   build:"In a shaker with ice",
+   ing:[["2 oz","Absolut Lime Vodka"],["2.5 oz","Licor 43"],["Splash","Daily's Sweet and Sour"],["Splash","Dole Pineapple juice"],["1","Lime wedge, squeeze and drop into shaker"],["Splash","Reddi Wip whipped cream"]],
+   steps:["Shake vigorously & pour table side"],
+   glass:"Martini",garnish:"Graham cracker rim, lime wedge"},
+  {slug:"white-chocolate",name:"White Chocolate Martini",cat:"Dessert",
+   build:"In a shaker with ice",
+   ing:[["1.5 oz","Stoli Vanilla Vodka"],["1.5 oz","O'Reilly's White Chocolate Country Cream Liqueur"],["1.5 oz","Dorda Double Chocolate Liqueur"],["Splash","Reddi Wip whipped cream"]],
+   steps:["Shake vigorously & pour table side"],
+   glass:"Martini",garnish:"Large chocolate covered strawberry"},
+
+  // ===== NEWLY REMOVED – STILL SPEC =====
+  {slug:"trial-error",name:"Trial & Error",cat:"Still Spec",
+   build:"In a shaker with ice",
+   ing:[["8","Rosemary needles"],["2 oz","Crystal Head Vodka"],["1 oz","Giffard Banane du Brésil"],["1 oz","Liber & Co Pineapple Gum Syrup"],["1 oz","Lemon juice"]],
+   glass:"Coupe",garnish:"Long sprig of rosemary"},
+  {slug:"purple-mist",name:"Purple Mist",cat:"Still Spec",
+   build:"In a Boston shaker with ice",
+   ing:[["2 oz","Grey Goose Le Citron Vodka"],["1 oz","Monin Ube Syrup"],[".5 oz","Lemon juice"],["1 oz","Collet Brut Rosé Champagne"]],
+   steps:["Shake and strain over block ice with M logo stamp"],
+   glass:"Crystal",garnish:"Edible flower"},
+  {slug:"elyxir-27",name:"Elyxir 27 Sangria",cat:"Still Spec",
+   build:"In a Boston shaker",
+   ing:[["4","Blueberries"],["4","Raspberries"],["4","Blackberries"],["1","Orange slice"],["1 oz","Absolut Elyx"],["1 oz","Fonseca Bin 27 Port"],[".5 oz","St-Germain Elderflower Liqueur"],[".5 oz","Daily's Simple Syrup"],[".5 oz","Lemon juice"]],
+   steps:["Add fruit and ice","Shake and pour into glass and top with ice","Splash Fever-Tree Club Soda"],
+   glass:"Wine",garnish:"Dried orange wheel"},
+  {slug:"south-of-france",name:"South of France",cat:"Still Spec",
+   build:"In a Boston shaker with ice",
+   ing:[[".5 oz","Combier Liqueur de Pamplemousse"],[".5 oz","Citrónge"],[".25 oz","Daily's Simple Syrup"],["4.5 oz","Charles Heidsieck Brut Réserve Champagne"]],
+   steps:["Shake and strain","Fill with champagne"],
+   glass:"Champagne",garnish:"Grapefruit zest"},
+
+  // ===== PERFECT PEAR-ING page (uncategorized header) =====
+  {slug:"perfect-pearing",name:"Perfect Pear-ing",cat:"Still Spec",
+   build:"In a Boston shaker",
+   ing:[["2 oz","Botanist Gin"],["1 oz","Italicus Rosolio Di Bergamotto Liqueur"],["1 oz","REÀL Prickly Pear Purée"],["2","Sage leaves, slap and drop into mixing glass"],["1 oz","Lemon juice"]],
+   steps:["Muddle, add ice","Shake and strain over fresh ice","Top with splash of Perricone Lemonade"],
+   glass:"Pilsner",garnish:"Sage"},
+  {slug:"ron-burgundy",name:"Ron Burgundy",cat:"Still Spec",
+   build:"In a Boston shaker with ice",
+   ing:[["1.5 oz","Ron Zacapa No.23 Rum"],[".75 oz","Aperol"],[".75 oz","Giffard Banane du Brésil"],[".25 oz","Daily's Simple Syrup"],["2 dashes","Bitterman's Xocolatl Mole bitters"]],
+   steps:["Shake and strain over block ice with M logo stamp"],
+   glass:"Crystal",garnish:"None"},
+  {slug:"hemingway-gold",name:"Hemingway Gold",cat:"Still Spec",
+   build:"In a shaker with ice",
+   ing:[["2 oz","Don Q 7 Year Rum"],[".25 oz","Luxardo Maraschino Liqueur"],[".75 oz","Daily's Simple Syrup"],["1 oz","Lime juice"]],
+   steps:["Shake and poured by bartender"],
+   glass:"Coupe",garnish:"Edible flower"},
+  {slug:"jet-setter",name:"Jet Setter",cat:"Still Spec",
+   build:"In a Boston shaker with ice",
+   ing:[["1 oz","Wild Turkey Longbranch bourbon"],["1 oz","Meletti Amaro"],["1 oz","Aperol"],[".5 oz","Lemon juice"]],
+   steps:["Shake and strain over block ice with M logo stamp"],
+   glass:"Crystal",garnish:"Lemon zest"},
+];
+
+const CAT_ORDER = ["Non-Alcoholic","Tequila","Mezcal","Rum","Whiskey | Bourbon","Scotch","Cognac","Signature Martinis","Dessert","Still Spec"];
+
+const content = document.getElementById('content');
+const filtersEl = document.getElementById('filters');
+const searchEl = document.getElementById('search');
+const emptyEl = document.getElementById('empty');
+let activeCat = "All";
+
+// build filter chips
+["All",...CAT_ORDER].forEach(cat=>{
+  const b=document.createElement('button');
+  b.className='chip'+(cat==="All"?' active':'');
+  b.textContent=cat;
+  b.onclick=()=>{activeCat=cat;document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));b.classList.add('active');render();};
+  filtersEl.appendChild(b);
+});
+
+function render(){
+  const q=searchEl.value.trim().toLowerCase();
+  content.innerHTML='';
+  let shown=0;
+  CAT_ORDER.forEach(cat=>{
+    if(activeCat!=="All" && activeCat!==cat) return;
+    let items=RECIPES.filter(r=>r.cat===cat);
+    if(q){
+      items=items.filter(r=>{
+        const hay=(r.name+' '+r.ing.map(i=>i[1]).join(' ')).toLowerCase();
+        return hay.includes(q);
+      });
+    }
+    if(!items.length) return;
+    const h=document.createElement('div');h.className='section-title';h.textContent=cat;
+    content.appendChild(h);
+    const grid=document.createElement('div');grid.className='grid';
+    items.forEach(r=>{
+      shown++;
+      const card=document.createElement('div');card.className='card';
+      card.onclick=()=>openModal(r);
+      card.innerHTML=`
+        <div class="thumb"><img loading="lazy" src="photos/${r.slug}.jpg" alt="${r.name}"
+             onerror="this.parentElement.innerHTML='<div style=&quot;display:flex;height:100%;align-items:center;justify-content:center;color:#6a5d4d;font-size:13px&quot;>No photo</div>'"></div>
+        <div class="card-body">
+          <div class="card-cat">${r.cat}</div>
+          <div class="card-name">${r.name}</div>
+        </div>`;
+      grid.appendChild(card);
+    });
+    content.appendChild(grid);
+  });
+  emptyEl.style.display = shown? 'none':'block';
+}
+
+function openModal(r){
+  const m=document.getElementById('modal');
+  const ing=r.ing.map(i=>`<li><span class="amt">${i[0]}</span><span class="nm">${i[1]}</span></li>`).join('');
+  const steps=(r.steps&&r.steps.length)?
+    `<div class="block"><h3>Method</h3><ol class="steps">${r.steps.map(s=>`<li>${s}</li>`).join('')}</ol></div>`:'';
+  m.innerHTML=`
+    <button class="close" onclick="closeModal()" aria-label="Close">×</button>
+    <div class="modal-hero">
+      <img src="photos/${r.slug}.jpg" alt="${r.name}"
+        onerror="this.style.display='none'">
+      <div class="scrim"></div>
+      <div class="titles">
+        <div class="modal-cat">${r.cat}</div>
+        <div class="modal-name">${r.name}</div>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div class="block"><h3>Build</h3><div>${r.build}</div></div>
+      <div class="block"><h3>Ingredients</h3><ul class="ing">${ing}</ul></div>
+      ${steps}
+      <div class="block"><div class="meta">
+        <div><div class="k">Glassware</div><div class="v">${r.glass||'—'}</div></div>
+        <div><div class="k">Garnish</div><div class="v">${r.garnish||'—'}</div></div>
+      </div></div>
+    </div>`;
+  document.getElementById('overlay').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeModal(){
+  document.getElementById('overlay').classList.remove('open');
+  document.body.style.overflow='';
+}
+document.getElementById('overlay').addEventListener('click',e=>{
+  if(e.target.id==='overlay') closeModal();
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+searchEl.addEventListener('input',render);
+render();
+</script>
+</body>
+</html>
